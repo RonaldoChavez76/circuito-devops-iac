@@ -1,0 +1,128 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1609.v8926e7962024">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2293.v6e7193cec599"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2293.v6e7193cec599">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description>Circuito DevOps + IaC (Unidad III): Validación Terraform/Render, Auditoría Semgrep IaC, Observabilidad Prometheus/Grafana y Pruebas de Carga k6</description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4395.v738456a_5da_6b_">
+    <script><![CDATA[pipeline {
+    agent any
+
+    options {
+        timestamps()
+        timeout(time: 10, unit: 'MINUTES')
+    }
+
+    stages {
+        stage('Ver Entorno & Estructura IaC') {
+            steps {
+                sh '''
+                    echo "=== ESTRUCTURA DEL CIRCUITO DEVOPS + IAC ==="
+                    ls -la
+                    ls -la terraform/ ansible/ render/ monitoreo/ rendimiento-k6/
+                '''
+            }
+        }
+
+        stage('Validación IaC (Terraform & Render Blueprint)') {
+            steps {
+                sh '''
+                    echo "=== VALIDACIÓN DE TERRAFORM ==="
+                    mkdir -p reportes
+                    docker run --rm \
+                        --volumes-from jenkins \
+                        -w "${WORKSPACE}/terraform" \
+                        hashicorp/terraform:latest \
+                        init -backend=false
+
+                    docker run --rm \
+                        --volumes-from jenkins \
+                        -w "${WORKSPACE}/terraform" \
+                        hashicorp/terraform:latest \
+                        validate | tee ../reportes/terraform_validate_jenkins.txt
+
+                    docker run --rm \
+                        --volumes-from jenkins \
+                        -w "${WORKSPACE}/terraform" \
+                        hashicorp/terraform:latest \
+                        fmt -check -diff || true
+                '''
+            }
+        }
+
+        stage('Auditoría Seguridad IaC (Semgrep)') {
+            steps {
+                sh '''
+                    echo "=== ANÁLISIS SAST DE CONFIGURACIÓN IAC CON SEMGREP ==="
+                    mkdir -p reportes
+                    docker run --rm \
+                        --network bridge \
+                        --volumes-from jenkins \
+                        -w "${WORKSPACE}" \
+                        semgrep/semgrep \
+                        semgrep scan \
+                        --config=auto \
+                        --json \
+                        --output=reportes/semgrep_iac.json \
+                        terraform render ansible monitoreo || true
+                '''
+            }
+        }
+
+        stage('Verificación Observabilidad (Actuator, Prometheus & Grafana)') {
+            steps {
+                sh '''
+                    echo "=== VERIFICANDO ENDPOINTS DE SALUD Y MONITOREO ==="
+                    curl -sf http://host.docker.internal:8081/actuator/health
+                    echo ""
+                    curl -sf http://host.docker.internal:8082/actuator/health
+                    echo ""
+                    curl -sf http://host.docker.internal:9090/-/ready
+                    echo ""
+                    curl -sf http://host.docker.internal:3000/api/health
+                    echo ""
+                '''
+            }
+        }
+
+        stage('Pruebas de Rendimiento y Carga (k6)') {
+            steps {
+                sh '''
+                    echo "=== EJECUTANDO PRUEBA DE CARGA CONTROLADA CON GRAFANA K6 ==="
+                    mkdir -p reportes
+                    docker run --rm \
+                        --network bridge \
+                        --add-host=host.docker.internal:host-gateway \
+                        --volumes-from jenkins \
+                        -e REPORT_DIR="${WORKSPACE}/reportes" \
+                        -w "${WORKSPACE}" \
+                        grafana/k6:latest \
+                        run "${WORKSPACE}/rendimiento-k6/load_test.js"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "=== ARCHIVANDO REPORTES DE IAC, SEGURIDAD Y MONITOREO ==="
+            archiveArtifacts artifacts: 'reportes/**',
+                             allowEmptyArchive: true,
+                             fingerprint: true
+        }
+    }
+}]]></script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
+

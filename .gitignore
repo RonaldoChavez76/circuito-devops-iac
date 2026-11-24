@@ -1,0 +1,14 @@
+# Terraform provider binaries and local state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+
+# OS and editor artifacts
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,58 @@
+---
+- name: Configuración y Verificación Automatizada del Circuito DevOps (Unidad III)
+  hosts: local
+  gather_facts: false
+  vars:
+    backend_url: "{{ lookup('env', 'BACKEND_URL') | default('http://localhost:8081', true) }}"
+    frontend_url: "{{ lookup('env', 'FRONTEND_URL') | default('http://localhost:8082', true) }}"
+    prometheus_url: "{{ lookup('env', 'PROMETHEUS_URL') | default('http://localhost:9090', true) }}"
+    grafana_url: "{{ lookup('env', 'GRAFANA_URL') | default('http://localhost:3000', true) }}"
+
+  tasks:
+    - name: 1. Verificar existencia de directorios de observabilidad y reportes
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - ../reportes
+        - ../monitoreo/prometheus
+        - ../monitoreo/grafana/provisioning/datasources
+        - ../monitoreo/grafana/provisioning/dashboards
+
+    - name: 2. Validar estado de contenedores base (MariaDB, Jenkins, Prometheus, Grafana)
+      ansible.builtin.command: docker ps --format "{{ '{{' }}.Names{{ '}}' }}:{{ '{{' }}.Status{{ '}}' }}"
+      register: docker_containers
+      changed_when: false
+
+    - name: 3. Mostrar contenedores activos detectados
+      ansible.builtin.debug:
+        var: docker_containers.stdout_lines
+
+    - name: 4. Verificar endpoint de salud Spring Boot Actuator (Backend)
+      ansible.builtin.uri:
+        url: "{{ backend_url }}/actuator/health"
+        return_content: true
+        status_code: 200
+      register: backend_health
+
+    - name: 5. Verificar exposición de métricas Prometheus (Backend)
+      ansible.builtin.uri:
+        url: "{{ backend_url }}/actuator/prometheus"
+        status_code: 200
+
+    - name: 6. Verificar endpoint de salud Spring Boot Actuator (Frontend)
+      ansible.builtin.uri:
+        url: "{{ frontend_url }}/actuator/health"
+        return_content: true
+        status_code: 200
+      register: frontend_health
+
+    - name: 7. Verificar disponibilidad de Prometheus y Grafana
+      ansible.builtin.uri:
+        url: "{{ item }}"
+        status_code: 200
+      loop:
+        - "{{ prometheus_url }}/-/ready"
+        - "{{ grafana_url }}/api/health"
+
