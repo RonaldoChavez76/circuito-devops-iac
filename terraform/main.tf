@@ -1,3 +1,7 @@
+locals {
+  monitoring_dir = var.host_monitoring_dir != "" ? var.host_monitoring_dir : abspath("${path.module}/../monitoreo")
+}
+
 resource "docker_network" "devops_net" {
   name = var.network_name
 }
@@ -13,9 +17,10 @@ resource "docker_image" "grafana_img" {
 }
 
 resource "docker_container" "prometheus" {
-  name    = "devops-prometheus"
-  image   = docker_image.prometheus_img.image_id
-  restart = "unless-stopped"
+  name         = "devops-prometheus"
+  image        = docker_image.prometheus_img.image_id
+  restart      = "unless-stopped"
+  network_mode = "bridge"
 
   networks_advanced {
     name = docker_network.devops_net.name
@@ -34,14 +39,14 @@ resource "docker_container" "prometheus" {
 
   mounts {
     target    = "/etc/prometheus/prometheus.yml"
-    source    = abspath("${path.module}/../monitoreo/prometheus/prometheus.yml")
+    source    = "${local.monitoring_dir}/prometheus/prometheus.yml"
     type      = "bind"
     read_only = true
   }
 
   mounts {
     target    = "/etc/prometheus/alert_rules.yml"
-    source    = abspath("${path.module}/../monitoreo/prometheus/alert_rules.yml")
+    source    = "${local.monitoring_dir}/prometheus/alert_rules.yml"
     type      = "bind"
     read_only = true
   }
@@ -58,9 +63,10 @@ resource "docker_container" "prometheus" {
 }
 
 resource "docker_container" "grafana" {
-  name    = "devops-grafana"
-  image   = docker_image.grafana_img.image_id
-  restart = "unless-stopped"
+  name         = "devops-grafana"
+  image        = docker_image.grafana_img.image_id
+  restart      = "unless-stopped"
+  network_mode = "bridge"
 
   depends_on = [docker_container.prometheus]
 
@@ -81,7 +87,7 @@ resource "docker_container" "grafana" {
 
   mounts {
     target    = "/etc/grafana/provisioning"
-    source    = abspath("${path.module}/../monitoreo/grafana/provisioning")
+    source    = "${local.monitoring_dir}/grafana/provisioning"
     type      = "bind"
     read_only = true
   }

@@ -54,3 +54,8 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "host_monitoring_dir" {
+  description = "Ruta del directorio monitoreo en el host (opcional cuando Terraform corre en contenedor)"
+  type        = string
+  default     = ""
+}
