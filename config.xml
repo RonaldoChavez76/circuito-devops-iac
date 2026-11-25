@@ -81,10 +81,21 @@
             steps {
                 sh '''
                     echo "=== VERIFICANDO SERVICIOS CLOUD (RENDER) ==="
-                    curl -sf --max-time 60 https://ejercicio5myapigestor-k9qg.onrender.com/actuator/health
-                    echo ""
-                    curl -sf --max-time 60 https://ejercicio5cliente-4o86.onrender.com/actuator/health
-                    echo ""
+                    check_url() {
+                        URL="$1"
+                        for i in 1 2 3; do
+                            if curl -sf --max-time 120 "$URL"; then
+                                echo ""
+                                return 0
+                            fi
+                            echo "Esperando cold start de $URL (intento $i/3)..."
+                            sleep 10
+                        done
+                        echo "ERROR: $URL no respondio tras 3 intentos"
+                        return 1
+                    }
+                    check_url "https://ejercicio5myapigestor-k9qg.onrender.com/actuator/health"
+                    check_url "https://ejercicio5cliente-4o86.onrender.com/actuator/health"
                     echo "=== VERIFICANDO PROMETHEUS Y GRAFANA LOCAL ==="
                     curl -sf http://host.docker.internal:9090/-/ready
                     echo ""
