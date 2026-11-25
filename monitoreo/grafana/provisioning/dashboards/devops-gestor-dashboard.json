@@ -31,7 +31,7 @@
       "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
       "id": 1,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
-      "targets": [{ "expr": "up{job=~\"backend-api-gestor|frontend-cliente-web\"}", "legendFormat": "{{job}}", "refId": "A" }],
+      "targets": [{ "expr": "up{job=~\"backend-api-gestor|frontend-cliente-web|render-backend-cloud|render-frontend-cloud\"}", "legendFormat": "{{job}}", "refId": "A" }],
       "title": "Disponibilidad Microservicios (UP/DOWN)",
       "type": "stat"
     },
@@ -40,7 +40,7 @@
       "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
       "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
       "id": 2,
-      "targets": [{ "expr": "process_cpu_usage{application=~\"Ejercicio5.*\"}", "legendFormat": "{{application}} CPU", "refId": "A" }],
+      "targets": [{ "expr": "process_cpu_usage{application=~\"Ejercicio5.*\"}", "legendFormat": "{{application}} ({{environment}})", "refId": "A" }],
       "title": "Uso de CPU por Microservicio",
       "type": "timeseries"
     },
@@ -49,7 +49,7 @@
       "fieldConfig": { "defaults": { "unit": "bytes" } },
       "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
       "id": 3,
-      "targets": [{ "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) by (application)", "legendFormat": "{{application}} Heap", "refId": "A" }],
+      "targets": [{ "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) by (application, environment)", "legendFormat": "{{application}} ({{environment}})", "refId": "A" }],
       "title": "Memoria JVM Heap Usada",
       "type": "timeseries"
     },
@@ -58,7 +58,7 @@
       "fieldConfig": { "defaults": { "unit": "reqps" } },
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 4 },
       "id": 4,
-      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count[30s])) by (application)", "legendFormat": "{{application}} RPS", "refId": "A" }],
+      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count[1m])) by (application, environment)", "legendFormat": "{{application}} ({{environment}})", "refId": "A" }],
       "title": "Throughput (Peticiones HTTP / seg)",
       "type": "timeseries"
     },
@@ -68,8 +68,8 @@
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 4 },
       "id": 5,
       "targets": [
-        { "expr": "sum(rate(http_server_requests_seconds_sum[1m])) by (application) / sum(rate(http_server_requests_seconds_count[1m])) by (application)", "legendFormat": "{{application}} Latencia Promedio", "refId": "A" },
-        { "expr": "max(http_server_requests_seconds_max) by (application)", "legendFormat": "{{application}} Latencia Máxima", "refId": "B" }
+        { "expr": "sum(rate(http_server_requests_seconds_sum[1m])) by (application, environment) / sum(rate(http_server_requests_seconds_count[1m])) by (application, environment)", "legendFormat": "{{application}} ({{environment}}) Promedio", "refId": "A" },
+        { "expr": "max(http_server_requests_seconds_max) by (application, environment)", "legendFormat": "{{application}} ({{environment}}) Máxima", "refId": "B" }
       ],
       "title": "Latencia de Respuesta HTTP (Promedio y Máxima)",
       "type": "timeseries"
@@ -80,8 +80,8 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 11 },
       "id": 6,
       "targets": [
-        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"2..\"}[1m])) by (application)", "legendFormat": "{{application}} 2xx OK", "refId": "A" },
-        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[1m])) by (application)", "legendFormat": "{{application}} Errores 4xx/5xx", "refId": "B" }
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"2..\"}[1m])) by (application, environment)", "legendFormat": "{{application}} ({{environment}}) 2xx OK", "refId": "A" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[1m])) by (application, environment)", "legendFormat": "{{application}} ({{environment}}) 4xx/5xx", "refId": "B" }
       ],
       "title": "Tasa de Respuestas HTTP (2xx vs Errores)",
       "type": "timeseries"
@@ -92,8 +92,8 @@
       "gridPos": { "h": 6, "w": 12, "x": 12, "y": 11 },
       "id": 7,
       "targets": [
-        { "expr": "hikaricp_connections_active{application=\"Ejercicio5MyAPIGestor\"}", "legendFormat": "Conexiones Activas MariaDB", "refId": "A" },
-        { "expr": "hikaricp_connections_idle{application=\"Ejercicio5MyAPIGestor\"}", "legendFormat": "Conexiones Idle MariaDB", "refId": "B" }
+        { "expr": "hikaricp_connections_active{application=\"Ejercicio5MyAPIGestor\"}", "legendFormat": "Activas ({{environment}})", "refId": "A" },
+        { "expr": "hikaricp_connections_idle{application=\"Ejercicio5MyAPIGestor\"}", "legendFormat": "Idle ({{environment}})", "refId": "B" }
       ],
       "title": "Pool de Conexiones HikariCP -> MariaDB (dbgestor)",
       "type": "timeseries"
@@ -107,4 +107,3 @@
   "title": "Circuito DevOps U3 - Observabilidad Gestor Proyectos",
   "uid": "circuito-devops-u3"
 }
-

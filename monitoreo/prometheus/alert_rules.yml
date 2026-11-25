@@ -2,38 +2,37 @@ groups:
   - name: devops_microservicios_alertas
     rules:
       - alert: MicroservicioInactivo
-        expr: up{job=~"backend-api-gestor|frontend-cliente-web"} == 0
-        for: 30s
+        expr: up{job=~"backend-api-gestor|frontend-cliente-web|render-backend-cloud|render-frontend-cloud"} == 0
+        for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Microservicio caído: {{ $labels.job }}"
-          description: "El servicio {{ $labels.job }} ({{ $labels.instance }}) dejó de responder por más de 30 segundos."
+          summary: "Microservicio caído: {{ $labels.job }} ({{ $labels.environment }})"
+          description: "El servicio {{ $labels.job }} ({{ $labels.environment }} - {{ $labels.instance }}) dejó de responder por más de 1 minuto."
 
       - alert: AltaLatenciaHTTP_P95
-        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le, application)) > 0.5
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le, application, environment)) > 0.5
         for: 30s
         labels:
           severity: warning
         annotations:
-          summary: "Alta latencia p95 en {{ $labels.application }}"
-          description: "El percentil 95 de latencia HTTP superó los 500ms (valor actual: {{ $value }}s)."
+          summary: "Alta latencia p95 en {{ $labels.application }} ({{ $labels.environment }})"
+          description: "El percentil 95 de latencia HTTP en {{ $labels.environment }} superó los 500ms (valor actual: {{ $value }}s)."
 
       - alert: ErroresHTTP5xxDetectados
-        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[1m])) by (application) > 0
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[1m])) by (application, environment) > 0
         for: 15s
         labels:
           severity: critical
         annotations:
-          summary: "Errores HTTP 5xx en {{ $labels.application }}"
-          description: "Se detectaron errores internos de servidor 5xx en {{ $labels.application }}."
+          summary: "Errores HTTP 5xx en {{ $labels.application }} ({{ $labels.environment }})"
+          description: "Se detectaron errores internos de servidor 5xx en {{ $labels.application }} ({{ $labels.environment }})."
 
       - alert: UsoElevadoMemoriaJVM
-        expr: (sum(jvm_memory_used_bytes{area="heap"}) by (application) / sum(jvm_memory_max_bytes{area="heap"}) by (application)) * 100 > 85
+        expr: (sum(jvm_memory_used_bytes{area="heap"}) by (application, environment) / sum(jvm_memory_max_bytes{area="heap"}) by (application, environment)) * 100 > 85
         for: 1m
         labels:
           severity: warning
         annotations:
-          summary: "Uso elevado de memoria JVM Heap en {{ $labels.application }}"
-          description: "El uso de memoria Heap supera el 85% ({{ $value }}%)."
-
+          summary: "Uso elevado de memoria JVM Heap en {{ $labels.application }} ({{ $labels.environment }})"
+          description: "El uso de memoria Heap en {{ $labels.environment }} supera el 85% ({{ $value }}%)."

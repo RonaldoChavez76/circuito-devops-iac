@@ -16,7 +16,7 @@ scrape_configs:
       - targets: ['host.docker.internal:8081']
         labels:
           service: 'backend'
-          environment: 'devops-u3'
+          environment: 'local'
 
   - job_name: 'frontend-cliente-web'
     metrics_path: '/actuator/prometheus'
@@ -24,5 +24,26 @@ scrape_configs:
       - targets: ['host.docker.internal:8082']
         labels:
           service: 'frontend'
-          environment: 'devops-u3'
+          environment: 'local'
 
+  - job_name: 'render-backend-cloud'
+    scrape_interval: 15s
+    scrape_timeout: 12s
+    scheme: https
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['ejercicio5myapigestor-k9qg.onrender.com']
+        labels:
+          service: 'backend'
+          environment: 'render-cloud'
+
+  - job_name: 'render-frontend-cloud'
+    scrape_interval: 15s
+    scrape_timeout: 12s
+    scheme: https
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['ejercicio5cliente-4o86.onrender.com']
+        labels:
+          service: 'frontend'
+          environment: 'render-cloud'
