@@ -23,7 +23,8 @@ resource "docker_container" "prometheus" {
   network_mode = "bridge"
 
   networks_advanced {
-    name = docker_network.devops_net.name
+    name    = docker_network.devops_net.name
+    aliases = ["prometheus"]
   }
 
   ports {
